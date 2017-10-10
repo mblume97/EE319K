@@ -1,1 +1,0 @@
-.\images.o: Images.c
