@@ -1,0 +1,5 @@
+Dependencies for Project 'Lab4', Target 'Lab4': (DO NOT MODIFY !)
+F (.\Startup.s)(0x58B1470C)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"--list .\startup.lst --xref -o .\startup.o --depend .\startup.d)
+F (.\SysTick.s)(0x58B329D9)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"--list .\systick.lst --xref -o .\systick.o --depend .\systick.d)
+F (.\main.s)(0x58B5B3CC)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"--list .\main.lst --xref -o .\main.o --depend .\main.d)
+F (.\texas.o)(0x58B1470C)()

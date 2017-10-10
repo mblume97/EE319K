@@ -1,0 +1,20 @@
+Dependencies for Project 'Lab8', Target 'Lab8': (DO NOT MODIFY !)
+F (.\startup.s)(0x58E6FB65)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"--list .\startup.lst --xref -o .\startup.o --depend .\startup.d)
+F (.\LCD.s)(0x58E91A04)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"--list .\lcd.lst --xref -o .\lcd.o --depend .\lcd.d)
+F (.\Print.s)(0x58E9199E)(--cpu Cortex-M4 --pd "__EVAL SETA 1" -g --apcs=interwork -I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"--list .\print.lst --xref -o .\print.o --depend .\print.d)
+F (.\ADC.c)(0x58E92DB9)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections -I.. -I..\..\.. --C99-I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"-Drvmdk -DPART_LM4F120H5QR-o .\adc.o --omf_browse .\adc.crf --depend .\adc.d)
+I (C:\Users\Michael\Desktop\New folder\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (tm4c123gh6pm.h)(0x58E6FB65)
+F (.\Lab8.c)(0x58EBECC5)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections -I.. -I..\..\.. --C99-I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"-Drvmdk -DPART_LM4F120H5QR-o .\lab8.o --omf_browse .\lab8.crf --depend .\lab8.d)
+I (C:\Users\Michael\Desktop\New folder\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (ST7735.h)(0x58E6FB65)
+I (TExaS.h)(0x58E6FB65)
+I (ADC.h)(0x58E6FB65)
+I (print.h)(0x58E6FB65)
+I (tm4c123gh6pm.h)(0x58E6FB65)
+F (.\ST7735.c)(0x58EB9711)(-c --cpu Cortex-M4 -D__EVAL -g -O0 --apcs=interwork --split_sections -I.. -I..\..\.. --C99-I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"-Drvmdk -DPART_LM4F120H5QR-o .\st7735.o --omf_browse .\st7735.crf --depend .\st7735.d)
+I (C:\Users\Michael\Desktop\New folder\ARM\ARMCC\include\stdio.h)(0x51C88A34)
+I (C:\Users\Michael\Desktop\New folder\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (ST7735.h)(0x58E6FB65)
+I (tm4c123gh6pm.h)(0x58E6FB65)
+F (.\texas.o)(0x58E6FB65)()

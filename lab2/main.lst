@@ -1,0 +1,1037 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;****************** main.s ***************
+    2 00000000         ; Program written by: Michael Blume, Jordan Pamatmat
+    3 00000000         ; Date Created: 2/4/2017
+    4 00000000         ; Last Modified: 2/12/2017
+    5 00000000         ; Brief description of the program
+    6 00000000         ;   The LED toggles at 8 Hz and a varying duty-cycle
+    7 00000000         ; Hardware connections (External: One button and one LED
+                       )
+    8 00000000         ;  PE1 is Button input  (1 means pressed, 0 means not pr
+                       essed)
+    9 00000000         ;  PE0 is LED output (1 activates external9 LED on proto
+                       board)
+   10 00000000         ;  PF4 is builtin button SW1 on Launchpad (Internal) 
+   11 00000000         ;        Negative Logic (0 means pressed, 1 means not pr
+                       essed)
+   12 00000000         ; Overall functionality of this system is to operate lik
+                       e this
+   13 00000000         ;   1) Make PE0 an output and make PE1 and PF4 inputs.
+   14 00000000         ;   2) The system starts with the the LED toggling at 8H
+                       z,
+   15 00000000         ;      which is 8 times per second with a duty-cycle of 
+                       20%.
+   16 00000000         ;      Therefore, the LED is ON for (0.2*1/8)th of a sec
+                       ond
+   17 00000000         ;      and OFF for (0.8*1/8)th of a second.
+   18 00000000         ;   3) When the button on (PE1) is pressed-and-released 
+                       increase
+   19 00000000         ;      the duty cycle by 20% (modulo 100%). Therefore fo
+                       r each
+   20 00000000         ;      press-and-release the duty cycle changes from 20%
+                        to 40% to 60%
+   21 00000000         ;      to 80% to 100%(ON) to 0%(Off) to 20% to 40% so on
+                       
+   22 00000000         ;   4) Implement a "breathing LED" when SW1 (PF4) on the
+                        Launchpad is pressed:
+   23 00000000         ;      a) Be creative and play around with what "breathi
+                       ng" means.
+   24 00000000         ;         An example of "breathing" is most computers po
+                       wer LED in sleep mode
+   25 00000000         ;         (e.g., https://www.youtube.com/watch?v=ZT6siXy
+                       IjvQ).
+   26 00000000         ;      b) When (PF4) is released while in breathing mode
+                       , resume blinking at 8Hz.
+   27 00000000         ;         The duty cycle can either match the most recen
+                       t duty-
+   28 00000000         ;         cycle or reset to 20%.
+   29 00000000         ;      TIP: debugging the breathing LED algorithm and fe
+                       el on the simulator is impossible.
+   30 00000000         ; PortE device registers
+   31 00000000 400243FC 
+                       GPIO_PORTE_DATA_R
+                               EQU              0x400243FC
+   32 00000000 40024400 
+                       GPIO_PORTE_DIR_R
+                               EQU              0x40024400
+   33 00000000 40024420 
+                       GPIO_PORTE_AFSEL_R
+                               EQU              0x40024420
+   34 00000000 4002451C 
+
+
+
+ARM Macro Assembler    Page 2 
+
+
+                       GPIO_PORTE_DEN_R
+                               EQU              0x4002451C
+   35 00000000         ; PortF device registers
+   36 00000000 400253FC 
+                       GPIO_PORTF_DATA_R
+                               EQU              0x400253FC
+   37 00000000 40025400 
+                       GPIO_PORTF_DIR_R
+                               EQU              0x40025400
+   38 00000000 40025420 
+                       GPIO_PORTF_AFSEL_R
+                               EQU              0x40025420
+   39 00000000 40025510 
+                       GPIO_PORTF_PUR_R
+                               EQU              0x40025510
+   40 00000000 4002551C 
+                       GPIO_PORTF_DEN_R
+                               EQU              0x4002551C
+   41 00000000 0003D000 
+                       DELAY10 EQU              0x00003D000 ; this is 12.5ms wh
+                                                            ich is 10% of a 8HZ
+                                                             frequency
+   42 00000000 001E8000 
+                       DELAY80 EQU              0x0001E8000
+   43 00000000 0007A000 
+                       DELAY20 EQU              0x00007A000 ; this is 25ms whic
+                                                            h is 20% of a 8HZ f
+                                                            requency
+   44 00000000 000F4000 
+                       DELAY40 EQU              0X0000F4000
+   45 00000000 0016E000 
+                       DELAY60 EQU              0x00016E000
+   46 00000000 000030CC 
+                       DELAY5  EQU              0x0000030CC ; this is 0.625ms w
+                                                            hich is 5% of a 80H
+                                                            Z frequency
+   47 00000000 0003CFF1 
+                       DELAY100
+                               EQU              0x00003CFF1
+   48 00000000 000009C3 
+                       DELAY1  EQU              0x0000009C3
+   49 00000000 0003D02D 
+                       DELAY1001
+                               EQU              0x00003D02D
+   50 00000000         
+   51 00000000         
+   52 00000000 400FE608 
+                       SYSCTL_RCGCGPIO_R
+                               EQU              0x400FE608
+   53 00000000                 IMPORT           TExaS_Init
+   54 00000000                 AREA             |.text|, CODE, READONLY, ALIGN=
+2
+   55 00000000                 THUMB
+   56 00000000                 EXPORT           Start
+   57 00000000         Start
+   58 00000000         ; TExaS_Init sets bus clock at 80 MHz
+   59 00000000 F7FF FFFE       BL               TExaS_Init  ; voltmeter, scope 
+                                                            on PD3
+   60 00000004         
+
+
+
+ARM Macro Assembler    Page 3 
+
+
+   61 00000004 48A5            LDR              R0, =SYSCTL_RCGCGPIO_R ; Turn o
+                                                            n the clock for Por
+                                                            t E and Port F
+   62 00000006 6801            LDR              R1, [R0]
+   63 00000008 F041 0130       ORR              R1, #0x30
+   64 0000000C 6001            STR              R1, [R0]
+   65 0000000E BF00            NOP
+   66 00000010 BF00            NOP
+   67 00000012         
+   68 00000012 48A3            LDR              R0, =GPIO_PORTE_DIR_R
+   69 00000014 6801            LDR              R1, [R0]
+   70 00000016 F021 0102       BIC              R1, #0x02   ; Make PE1 an input
+                                                             = 0
+   71 0000001A F041 0101       ORR              R1, #0x01   ; Make PE0 an outpu
+                                                            t = 1
+   72 0000001E 6001            STR              R1, [R0]
+   73 00000020         
+   74 00000020 48A0            LDR              R0, =GPIO_PORTF_DIR_R
+   75 00000022 6801            LDR              R1, [R0]
+   76 00000024 F021 0110       BIC              R1, #0x10   ; Make PF4 an input
+                                                             = 0
+   77 00000028 6001            STR              R1, [R0]
+   78 0000002A         
+   79 0000002A 489F            LDR              R0, =GPIO_PORTE_AFSEL_R
+   80 0000002C 6801            LDR              R1, [R0]
+   81 0000002E F021 0103       BIC              R1, #0x03   ; Turn off alternat
+                                                            e functions for Por
+                                                            t E
+   82 00000032 6001            STR              R1, [R0]
+   83 00000034         
+   84 00000034 489D            LDR              R0, =GPIO_PORTF_AFSEL_R
+   85 00000036 6801            LDR              R1, [R0]
+   86 00000038 F021 0110       BIC              R1, #0x10   ; Turn off alternat
+                                                            e functions for Por
+                                                            t F
+   87 0000003C 6001            STR              R1, [R0]
+   88 0000003E         
+   89 0000003E 489C            LDR              R0, =GPIO_PORTF_PUR_R
+   90 00000040 6801            LDR              R1, [R0]
+   91 00000042 F041 0110       ORR              R1, #0x10   ; Pull Up
+   92 00000046 6001            STR              R1, [R0]
+   93 00000048         
+   94 00000048 489A            LDR              R0, =GPIO_PORTE_DEN_R
+   95 0000004A 6801            LDR              R1, [R0]
+   96 0000004C F041 0103       ORR              R1, #0x03   ; Enable PE1,PE0
+   97 00000050 6001            STR              R1, [R0]
+   98 00000052         
+   99 00000052 4899            LDR              R0, =GPIO_PORTF_DEN_R
+  100 00000054 6801            LDR              R1, [R0]
+  101 00000056 F041 0110       ORR              R1, #0x10   ; Enable PF4
+  102 0000005A 6001            STR              R1, [R0]
+  103 0000005C         
+  104 0000005C 4897            LDR              R0, =GPIO_PORTE_DATA_R
+  105 0000005E F8DF C260       LDR              R12, =GPIO_PORTF_DATA_R
+  106 00000062         
+  107 00000062 B662            CPSIE            I           ; TExaS voltmeter, 
+                                                            scope runs on inter
+                                                            rupts
+  108 00000064         
+
+
+
+ARM Macro Assembler    Page 4 
+
+
+  109 00000064         ; THIS IS THE LOOP THAT OF A 20% DUTY CYCLE AT 8HZ
+  110 00000064         LOOP20
+  111 00000064 6801            LDR              R1, [R0]
+  112 00000066 F081 0101       EOR              R1, #0x01
+  113 0000006A 6001            STR              R1, [R0]
+  114 0000006C F44F 22F4       LDR              R2, =DELAY20
+  115 00000070 1E52    DE201   SUBS             R2, R2, #1
+  116 00000072 D1FD            BNE              DE201
+  117 00000074 F081 0101       EOR              R1, #0x01
+  118 00000078 6001            STR              R1, [R0]
+  119 0000007A F44F 12F4       LDR              R2, =DELAY80
+  120 0000007E 1E52    DE202   SUBS             R2, R2, #1
+  121 00000080 D1FD            BNE              DE202
+  122 00000082         
+  123 00000082 F8DC B000       LDR              R11, [R12]
+  124 00000086 F00B 0B10       AND              R11, #0x10
+  125 0000008A F1BB 0F10       CMP              R11, #0x10
+  126 0000008E D001            BEQ              NEXT20
+  127 00000090 F000 F8B3       BL               BREATHING
+  128 00000094         NEXT20
+  129 00000094 6801            LDR              R1, [R0]
+  130 00000096 F001 0502       AND              R5, R1, #0x02 ; R5 is pressed w
+                                                            ill be a 1, if not 
+                                                            pressed it will be 
+                                                            a 0
+  131 0000009A EA46 0605       ORR              R6, R6, R5  ; if it is pressed 
+                                                            put 1 in R6, 
+  132 0000009E EA85 0806       EOR              R8, R5, R6  ; if turned on then
+                                                             off this will be a
+                                                             1
+  133 000000A2 F1B8 0F02       CMP              R8, #0x02
+  134 000000A6 D1DD            BNE              LOOP20
+  135 000000A8 F000 F8A4       BL               CLEAR
+  136 000000AC E7FF            B                LOOP40
+  137 000000AE         
+  138 000000AE         ; THIS IS A LOOP OF 40% DUTY CYCLE AT 8HZ  
+  139 000000AE         LOOP40
+  140 000000AE 6801            LDR              R1, [R0]
+  141 000000B0 F081 0101       EOR              R1, #0x01
+  142 000000B4 6001            STR              R1, [R0]
+  143 000000B6 F44F 2274       LDR              R2, =DELAY40
+  144 000000BA 1E52    DE401   SUBS             R2, R2, #1
+  145 000000BC D1FD            BNE              DE401
+  146 000000BE F081 0101       EOR              R1, #0x01
+  147 000000C2 6001            STR              R1, [R0]
+  148 000000C4 F44F 12B7       LDR              R2, =DELAY60
+  149 000000C8 1E52    DE402   SUBS             R2, R2, #1
+  150 000000CA D1FD            BNE              DE402
+  151 000000CC         
+  152 000000CC F8DC B000       LDR              R11, [R12]
+  153 000000D0 F00B 0B10       AND              R11, #0x10
+  154 000000D4 F1BB 0F10       CMP              R11, #0x10
+  155 000000D8 D001            BEQ              NEXT40
+  156 000000DA F000 F88E       BL               BREATHING
+  157 000000DE         NEXT40
+  158 000000DE 6801            LDR              R1, [R0]
+  159 000000E0 F001 0502       AND              R5, R1, #0x02 ; R5 is pressed w
+                                                            ill be a 1, if not 
+                                                            pressed it will be 
+
+
+
+ARM Macro Assembler    Page 5 
+
+
+                                                            a 0
+  160 000000E4 EA46 0605       ORR              R6, R6, R5  ; if it is pressed 
+                                                            put 1 in R6, 
+  161 000000E8 EA85 0806       EOR              R8, R5, R6  ; if turned on then
+                                                             off this will be a
+                                                             1
+  162 000000EC F1B8 0F02       CMP              R8, #0x02
+  163 000000F0 D1DD            BNE              LOOP40
+  164 000000F2 F000 F87F       BL               CLEAR
+  165 000000F6 E7FF            B                LOOP60
+  166 000000F8         
+  167 000000F8         ; THIS IS A LOOP OF 60% DUTY CYCLE AT 8HZ
+  168 000000F8         LOOP60
+  169 000000F8 6801            LDR              R1, [R0]
+  170 000000FA F081 0101       EOR              R1, #0x01
+  171 000000FE 6001            STR              R1, [R0]
+  172 00000100 F44F 12B7       LDR              R2, =DELAY60
+  173 00000104 1E52    DE601   SUBS             R2, R2, #1
+  174 00000106 D1FD            BNE              DE601
+  175 00000108 F081 0101       EOR              R1, #0x01
+  176 0000010C 6001            STR              R1, [R0]
+  177 0000010E F44F 2274       LDR              R2, =DELAY40
+  178 00000112 1E52    DE602   SUBS             R2, R2, #1
+  179 00000114 D1FD            BNE              DE602
+  180 00000116         
+  181 00000116 F8DC B000       LDR              R11, [R12]
+  182 0000011A F00B 0B10       AND              R11, #0x10
+  183 0000011E F1BB 0F10       CMP              R11, #0x10
+  184 00000122 D001            BEQ              NEXT60
+  185 00000124 F000 F869       BL               BREATHING
+  186 00000128         NEXT60
+  187 00000128 6801            LDR              R1, [R0]
+  188 0000012A F001 0502       AND              R5, R1, #0x02 ; R5 is pressed w
+                                                            ill be a 1, if not 
+                                                            pressed it will be 
+                                                            a 0
+  189 0000012E EA46 0605       ORR              R6, R6, R5  ; if it is pressed 
+                                                            put 1 in R6, 
+  190 00000132 EA85 0806       EOR              R8, R5, R6  ; if turned on then
+                                                             off this will be a
+                                                             1
+  191 00000136 F1B8 0F02       CMP              R8, #0x02
+  192 0000013A D1DD            BNE              LOOP60
+  193 0000013C F000 F85A       BL               CLEAR
+  194 00000140 E7FF            B                LOOP80
+  195 00000142         
+  196 00000142         ; THIS IS A LOOP OF 80% DUTY CYCLE AT 8HZ
+  197 00000142         LOOP80
+  198 00000142 6801            LDR              R1, [R0]
+  199 00000144 F081 0101       EOR              R1, #0x01
+  200 00000148 6001            STR              R1, [R0]
+  201 0000014A F44F 12F4       LDR              R2, =DELAY80
+  202 0000014E 1E52    DE801   SUBS             R2, R2, #1
+  203 00000150 D1FD            BNE              DE801
+  204 00000152 F081 0101       EOR              R1, #0x01
+  205 00000156 6001            STR              R1, [R0]
+  206 00000158 F44F 22F4       LDR              R2, =DELAY20
+  207 0000015C 1E52    DE802   SUBS             R2, R2, #1
+  208 0000015E D1FD            BNE              DE802
+
+
+
+ARM Macro Assembler    Page 6 
+
+
+  209 00000160         
+  210 00000160 F8DC B000       LDR              R11, [R12]
+  211 00000164 F00B 0B10       AND              R11, #0x10
+  212 00000168 F1BB 0F10       CMP              R11, #0x10
+  213 0000016C D001            BEQ              NEXT80
+  214 0000016E F000 F844       BL               BREATHING
+  215 00000172         NEXT80
+  216 00000172 6801            LDR              R1, [R0]
+  217 00000174 F001 0502       AND              R5, R1, #0x02 ; R5 is pressed w
+                                                            ill be a 1, if not 
+                                                            pressed it will be 
+                                                            a 0
+  218 00000178 EA46 0605       ORR              R6, R6, R5  ; if it is pressed 
+                                                            put 1 in R6, 
+  219 0000017C EA85 0806       EOR              R8, R5, R6  ; if turned on then
+                                                             off this will be a
+                                                             1
+  220 00000180 F1B8 0F02       CMP              R8, #0x02
+  221 00000184 D1DD            BNE              LOOP80
+  222 00000186 F000 F835       BL               CLEAR
+  223 0000018A E7FF            B                LOOP100
+  224 0000018C         
+  225 0000018C         ; THIS IS A LOOP OF 100% DUTY CYCLE AT 8HZ
+  226 0000018C         LOOP100
+  227 0000018C 6801            LDR              R1, [R0]
+  228 0000018E F041 0101       ORR              R1, #0x01
+  229 00000192 6001            STR              R1, [R0]
+  230 00000194         
+  231 00000194 F8DC B000       LDR              R11, [R12]
+  232 00000198 F00B 0B10       AND              R11, #0x10
+  233 0000019C F1BB 0F10       CMP              R11, #0x10
+  234 000001A0 D001            BEQ              NEXT100
+  235 000001A2 F000 F82A       BL               BREATHING
+  236 000001A6         NEXT100
+  237 000001A6 6801            LDR              R1, [R0]
+  238 000001A8 F001 0502       AND              R5, R1, #0x02 ; R5 is pressed w
+                                                            ill be a 1, if not 
+                                                            pressed it will be 
+                                                            a 0
+  239 000001AC EA46 0605       ORR              R6, R6, R5  ; if it is pressed 
+                                                            put 1 in R6, 
+  240 000001B0 EA85 0806       EOR              R8, R5, R6  ; if turned on then
+                                                             off this will be a
+                                                             1
+  241 000001B4 F1B8 0F02       CMP              R8, #0x02
+  242 000001B8 D1E8            BNE              LOOP100
+  243 000001BA F000 F81B       BL               CLEAR
+  244 000001BE E7FF            B                LOOP0
+  245 000001C0         
+  246 000001C0         ; THIS IS A LOOP OF 0% DUTY CYCLE AT 8HZ
+  247 000001C0         LOOP0
+  248 000001C0 6801            LDR              R1, [R0]
+  249 000001C2 F021 0101       BIC              R1, #0x01
+  250 000001C6 6001            STR              R1, [R0]
+  251 000001C8         
+  252 000001C8 F8DC B000       LDR              R11, [R12]
+  253 000001CC F00B 0B10       AND              R11, #0x10
+  254 000001D0 F1BB 0F10       CMP              R11, #0x10
+  255 000001D4 D001            BEQ              NEXT0
+
+
+
+ARM Macro Assembler    Page 7 
+
+
+  256 000001D6 F000 F810       BL               BREATHING
+  257 000001DA         NEXT0
+  258 000001DA 6801            LDR              R1, [R0]
+  259 000001DC F001 0502       AND              R5, R1, #0x02 ; R5 is pressed w
+                                                            ill be a 1, if not 
+                                                            pressed it will be 
+                                                            a 0
+  260 000001E0 EA46 0605       ORR              R6, R6, R5  ; if it is pressed 
+                                                            put 1 in R6, 
+  261 000001E4 EA85 0806       EOR              R8, R5, R6  ; if turned on then
+                                                             off this will be a
+                                                             1
+  262 000001E8 F1B8 0F02       CMP              R8, #0x02
+  263 000001EC D1E8            BNE              LOOP0
+  264 000001EE F000 F801       BL               CLEAR
+  265 000001F2 E737            B                LOOP20
+  266 000001F4         
+  267 000001F4         CLEAR
+  268 000001F4 F006 0600       AND              R6, R6, #0
+  269 000001F8 4770            BX               LR
+  270 000001FA         
+  271 000001FA         BREATHING                            ; R7, R9, AND R10 A
+                                                            RE NOT USED ANYWHER
+                                                            E ELSE IN THE PROGR
+                                                            AM
+  272 000001FA E92D 4100       PUSH             {LR, R8}
+  273 000001FE F640 1AC3       LDR              R10, =DELAY1
+  274 00000202 F8DF 90C0       LDR              R9, =DELAY1001
+  275 00000206 F008 0800       AND              R8, R8, #0
+  276 0000020A F04F 0701       MOV              R7, #1
+  277 0000020E         
+  278 0000020E         ; implement breating, increase by 1% everytime until rea
+                       ches 100%, then decrease 1% until reaches 0%
+  279 0000020E         INCREASE
+  280 0000020E E92D 0280       PUSH             {R7, R9}
+  281 00000212 6801            LDR              R1, [R0]
+  282 00000214 F081 0101       EOR              R1, #0x01
+  283 00000218 6001            STR              R1, [R0]
+  284 0000021A 1E7F    DEB1    SUBS             R7, R7, #1
+  285 0000021C D1FD            BNE              DEB1
+  286 0000021E F081 0101       EOR              R1, #0x01
+  287 00000222 6001            STR              R1, [R0]
+  288 00000224 F1B9 0901 
+                       DEB2    SUBS             R9, R9, #1
+  289 00000228 D1FC            BNE              DEB2
+  290 0000022A         
+  291 0000022A E8BD 0280       POP              {R7, R9}
+  292 0000022E F8DC B000       LDR              R11, [R12]  ; check to see if i
+                                                            t is not pressed an
+                                                            ymore
+  293 00000232 F00B 0B10       AND              R11, #0x10
+  294 00000236 F1BB 0F10       CMP              R11, #0x10
+  295 0000023A D102            BNE              NEXTI
+  296 0000023C E8BD 4100       POP              {LR, R8}
+  297 00000240 4770            BX               LR          ; jump back to the 
+                                                            program
+  298 00000242         
+  299 00000242         NEXTI
+  300 00000242 F1B8 0F64       CMP              R8, #100
+
+
+
+ARM Macro Assembler    Page 8 
+
+
+  301 00000246 D022            BEQ              DEC         ; IF WE REACH 100% 
+                                                            WE NEED TO GO THE O
+                                                            THER WAY 
+  302 00000248 F108 0801 
+                       INC     ADD              R8, R8, #1  ; COUNTER TO SEE IF
+                                                             WE REACHED 100%
+  303 0000024C 4457            ADD              R7, R7, R10
+  304 0000024E EBA9 090A       SUB              R9, R9, R10
+  305 00000252 E7DC            B                INCREASE
+  306 00000254         
+  307 00000254         DECREASE
+  308 00000254 E92D 0280       PUSH             {R7, R9}
+  309 00000258 6801            LDR              R1, [R0]
+  310 0000025A F081 0101       EOR              R1, #0x01
+  311 0000025E 6001            STR              R1, [R0]
+  312 00000260 1E7F    DEB3    SUBS             R7, R7, #1
+  313 00000262 D1FD            BNE              DEB3
+  314 00000264 F081 0101       EOR              R1, #0x01
+  315 00000268 6001            STR              R1, [R0]
+  316 0000026A F1B9 0901 
+                       DEB4    SUBS             R9, R9, #1
+  317 0000026E D1FC            BNE              DEB4
+  318 00000270         
+  319 00000270 E8BD 0280       POP              {R7, R9}
+  320 00000274 F8DC B000       LDR              R11, [R12]  ; check to see if i
+                                                            t is not pressed
+  321 00000278 F00B 0B10       AND              R11, #0x10
+  322 0000027C F1BB 0F10       CMP              R11, #0x10
+  323 00000280 D102            BNE              NEXTD
+  324 00000282 E8BD 4100       POP              {LR, R8}
+  325 00000286 4770            BX               LR
+  326 00000288         
+  327 00000288         NEXTD
+  328 00000288 F1B8 0F00       CMP              R8, #0
+  329 0000028C D0DC            BEQ              INC
+  330 0000028E F1A8 0801 
+                       DEC     SUB              R8, R8, #1
+  331 00000292 44D1            ADD              R9, R9, R10
+  332 00000294 EBA7 070A       SUB              R7, R7, R10
+  333 00000298 E7DC            B                DECREASE
+  334 0000029A         
+  335 0000029A 00 00           ALIGN                        ; make sure the end
+                                                             of this section is
+                                                             aligned
+  336 0000029C                 END                          ; end of file
+              400FE608 
+              40024400 
+              40025400 
+              40024420 
+              40025420 
+              40025510 
+              4002451C 
+              4002551C 
+              400243FC 
+              400253FC 
+              0003D02D 
+Command Line: --debug --xref --cpu=Cortex-M4 --apcs=interwork --depend=.\main.d
+ -o.\main.o -I"C:\Users\Michael\Desktop\New folder\ARM\RV31\INC" -I"C:\Users\Mi
+chael\Desktop\New folder\ARM\CMSIS\Include" -I"C:\Users\Michael\Desktop\New fol
+
+
+
+ARM Macro Assembler    Page 9 
+
+
+der\ARM\Inc\Luminary" --predefine="__EVAL SETA 1" --list=.\main.lst main.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+.text 00000000
+
+Symbol: .text
+   Definitions
+      At line 54 in file main.s
+   Uses
+      None
+Comment: .text unused
+BREATHING 000001FA
+
+Symbol: BREATHING
+   Definitions
+      At line 271 in file main.s
+   Uses
+      At line 127 in file main.s
+      At line 156 in file main.s
+      At line 185 in file main.s
+      At line 214 in file main.s
+      At line 235 in file main.s
+      At line 256 in file main.s
+
+CLEAR 000001F4
+
+Symbol: CLEAR
+   Definitions
+      At line 267 in file main.s
+   Uses
+      At line 135 in file main.s
+      At line 164 in file main.s
+      At line 193 in file main.s
+      At line 222 in file main.s
+      At line 243 in file main.s
+      At line 264 in file main.s
+
+DE201 00000070
+
+Symbol: DE201
+   Definitions
+      At line 115 in file main.s
+   Uses
+      At line 116 in file main.s
+Comment: DE201 used once
+DE202 0000007E
+
+Symbol: DE202
+   Definitions
+      At line 120 in file main.s
+   Uses
+      At line 121 in file main.s
+Comment: DE202 used once
+DE401 000000BA
+
+Symbol: DE401
+   Definitions
+      At line 144 in file main.s
+   Uses
+      At line 145 in file main.s
+Comment: DE401 used once
+DE402 000000C8
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Relocatable symbols
+
+
+Symbol: DE402
+   Definitions
+      At line 149 in file main.s
+   Uses
+      At line 150 in file main.s
+Comment: DE402 used once
+DE601 00000104
+
+Symbol: DE601
+   Definitions
+      At line 173 in file main.s
+   Uses
+      At line 174 in file main.s
+Comment: DE601 used once
+DE602 00000112
+
+Symbol: DE602
+   Definitions
+      At line 178 in file main.s
+   Uses
+      At line 179 in file main.s
+Comment: DE602 used once
+DE801 0000014E
+
+Symbol: DE801
+   Definitions
+      At line 202 in file main.s
+   Uses
+      At line 203 in file main.s
+Comment: DE801 used once
+DE802 0000015C
+
+Symbol: DE802
+   Definitions
+      At line 207 in file main.s
+   Uses
+      At line 208 in file main.s
+Comment: DE802 used once
+DEB1 0000021A
+
+Symbol: DEB1
+   Definitions
+      At line 284 in file main.s
+   Uses
+      At line 285 in file main.s
+Comment: DEB1 used once
+DEB2 00000224
+
+Symbol: DEB2
+   Definitions
+      At line 288 in file main.s
+   Uses
+      At line 289 in file main.s
+Comment: DEB2 used once
+DEB3 00000260
+
+Symbol: DEB3
+   Definitions
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Relocatable symbols
+
+      At line 312 in file main.s
+   Uses
+      At line 313 in file main.s
+Comment: DEB3 used once
+DEB4 0000026A
+
+Symbol: DEB4
+   Definitions
+      At line 316 in file main.s
+   Uses
+      At line 317 in file main.s
+Comment: DEB4 used once
+DEC 0000028E
+
+Symbol: DEC
+   Definitions
+      At line 330 in file main.s
+   Uses
+      At line 301 in file main.s
+Comment: DEC used once
+DECREASE 00000254
+
+Symbol: DECREASE
+   Definitions
+      At line 307 in file main.s
+   Uses
+      At line 333 in file main.s
+Comment: DECREASE used once
+INC 00000248
+
+Symbol: INC
+   Definitions
+      At line 302 in file main.s
+   Uses
+      At line 329 in file main.s
+Comment: INC used once
+INCREASE 0000020E
+
+Symbol: INCREASE
+   Definitions
+      At line 279 in file main.s
+   Uses
+      At line 305 in file main.s
+Comment: INCREASE used once
+LOOP0 000001C0
+
+Symbol: LOOP0
+   Definitions
+      At line 247 in file main.s
+   Uses
+      At line 244 in file main.s
+      At line 263 in file main.s
+
+LOOP100 0000018C
+
+Symbol: LOOP100
+   Definitions
+      At line 226 in file main.s
+   Uses
+
+
+
+ARM Macro Assembler    Page 4 Alphabetic symbol ordering
+Relocatable symbols
+
+      At line 223 in file main.s
+      At line 242 in file main.s
+
+LOOP20 00000064
+
+Symbol: LOOP20
+   Definitions
+      At line 110 in file main.s
+   Uses
+      At line 134 in file main.s
+      At line 265 in file main.s
+
+LOOP40 000000AE
+
+Symbol: LOOP40
+   Definitions
+      At line 139 in file main.s
+   Uses
+      At line 136 in file main.s
+      At line 163 in file main.s
+
+LOOP60 000000F8
+
+Symbol: LOOP60
+   Definitions
+      At line 168 in file main.s
+   Uses
+      At line 165 in file main.s
+      At line 192 in file main.s
+
+LOOP80 00000142
+
+Symbol: LOOP80
+   Definitions
+      At line 197 in file main.s
+   Uses
+      At line 194 in file main.s
+      At line 221 in file main.s
+
+NEXT0 000001DA
+
+Symbol: NEXT0
+   Definitions
+      At line 257 in file main.s
+   Uses
+      At line 255 in file main.s
+Comment: NEXT0 used once
+NEXT100 000001A6
+
+Symbol: NEXT100
+   Definitions
+      At line 236 in file main.s
+   Uses
+      At line 234 in file main.s
+Comment: NEXT100 used once
+NEXT20 00000094
+
+Symbol: NEXT20
+   Definitions
+
+
+
+ARM Macro Assembler    Page 5 Alphabetic symbol ordering
+Relocatable symbols
+
+      At line 128 in file main.s
+   Uses
+      At line 126 in file main.s
+Comment: NEXT20 used once
+NEXT40 000000DE
+
+Symbol: NEXT40
+   Definitions
+      At line 157 in file main.s
+   Uses
+      At line 155 in file main.s
+Comment: NEXT40 used once
+NEXT60 00000128
+
+Symbol: NEXT60
+   Definitions
+      At line 186 in file main.s
+   Uses
+      At line 184 in file main.s
+Comment: NEXT60 used once
+NEXT80 00000172
+
+Symbol: NEXT80
+   Definitions
+      At line 215 in file main.s
+   Uses
+      At line 213 in file main.s
+Comment: NEXT80 used once
+NEXTD 00000288
+
+Symbol: NEXTD
+   Definitions
+      At line 327 in file main.s
+   Uses
+      At line 323 in file main.s
+Comment: NEXTD used once
+NEXTI 00000242
+
+Symbol: NEXTI
+   Definitions
+      At line 299 in file main.s
+   Uses
+      At line 295 in file main.s
+Comment: NEXTI used once
+Start 00000000
+
+Symbol: Start
+   Definitions
+      At line 57 in file main.s
+   Uses
+      At line 56 in file main.s
+Comment: Start used once
+34 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Absolute symbols
+
+DELAY1 000009C3
+
+Symbol: DELAY1
+   Definitions
+      At line 48 in file main.s
+   Uses
+      At line 273 in file main.s
+Comment: DELAY1 used once
+DELAY10 0003D000
+
+Symbol: DELAY10
+   Definitions
+      At line 41 in file main.s
+   Uses
+      None
+Comment: DELAY10 unused
+DELAY100 0003CFF1
+
+Symbol: DELAY100
+   Definitions
+      At line 47 in file main.s
+   Uses
+      None
+Comment: DELAY100 unused
+DELAY1001 0003D02D
+
+Symbol: DELAY1001
+   Definitions
+      At line 49 in file main.s
+   Uses
+      At line 274 in file main.s
+Comment: DELAY1001 used once
+DELAY20 0007A000
+
+Symbol: DELAY20
+   Definitions
+      At line 43 in file main.s
+   Uses
+      At line 114 in file main.s
+      At line 206 in file main.s
+
+DELAY40 000F4000
+
+Symbol: DELAY40
+   Definitions
+      At line 44 in file main.s
+   Uses
+      At line 143 in file main.s
+      At line 177 in file main.s
+
+DELAY5 000030CC
+
+Symbol: DELAY5
+   Definitions
+      At line 46 in file main.s
+   Uses
+      None
+Comment: DELAY5 unused
+DELAY60 0016E000
+
+
+
+ARM Macro Assembler    Page 2 Alphabetic symbol ordering
+Absolute symbols
+
+
+Symbol: DELAY60
+   Definitions
+      At line 45 in file main.s
+   Uses
+      At line 148 in file main.s
+      At line 172 in file main.s
+
+DELAY80 001E8000
+
+Symbol: DELAY80
+   Definitions
+      At line 42 in file main.s
+   Uses
+      At line 119 in file main.s
+      At line 201 in file main.s
+
+GPIO_PORTE_AFSEL_R 40024420
+
+Symbol: GPIO_PORTE_AFSEL_R
+   Definitions
+      At line 33 in file main.s
+   Uses
+      At line 79 in file main.s
+Comment: GPIO_PORTE_AFSEL_R used once
+GPIO_PORTE_DATA_R 400243FC
+
+Symbol: GPIO_PORTE_DATA_R
+   Definitions
+      At line 31 in file main.s
+   Uses
+      At line 104 in file main.s
+Comment: GPIO_PORTE_DATA_R used once
+GPIO_PORTE_DEN_R 4002451C
+
+Symbol: GPIO_PORTE_DEN_R
+   Definitions
+      At line 34 in file main.s
+   Uses
+      At line 94 in file main.s
+Comment: GPIO_PORTE_DEN_R used once
+GPIO_PORTE_DIR_R 40024400
+
+Symbol: GPIO_PORTE_DIR_R
+   Definitions
+      At line 32 in file main.s
+   Uses
+      At line 68 in file main.s
+Comment: GPIO_PORTE_DIR_R used once
+GPIO_PORTF_AFSEL_R 40025420
+
+Symbol: GPIO_PORTF_AFSEL_R
+   Definitions
+      At line 38 in file main.s
+   Uses
+      At line 84 in file main.s
+Comment: GPIO_PORTF_AFSEL_R used once
+GPIO_PORTF_DATA_R 400253FC
+
+
+
+
+ARM Macro Assembler    Page 3 Alphabetic symbol ordering
+Absolute symbols
+
+Symbol: GPIO_PORTF_DATA_R
+   Definitions
+      At line 36 in file main.s
+   Uses
+      At line 105 in file main.s
+Comment: GPIO_PORTF_DATA_R used once
+GPIO_PORTF_DEN_R 4002551C
+
+Symbol: GPIO_PORTF_DEN_R
+   Definitions
+      At line 40 in file main.s
+   Uses
+      At line 99 in file main.s
+Comment: GPIO_PORTF_DEN_R used once
+GPIO_PORTF_DIR_R 40025400
+
+Symbol: GPIO_PORTF_DIR_R
+   Definitions
+      At line 37 in file main.s
+   Uses
+      At line 74 in file main.s
+Comment: GPIO_PORTF_DIR_R used once
+GPIO_PORTF_PUR_R 40025510
+
+Symbol: GPIO_PORTF_PUR_R
+   Definitions
+      At line 39 in file main.s
+   Uses
+      At line 89 in file main.s
+Comment: GPIO_PORTF_PUR_R used once
+SYSCTL_RCGCGPIO_R 400FE608
+
+Symbol: SYSCTL_RCGCGPIO_R
+   Definitions
+      At line 52 in file main.s
+   Uses
+      At line 61 in file main.s
+Comment: SYSCTL_RCGCGPIO_R used once
+19 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+External symbols
+
+TExaS_Init 00000000
+
+Symbol: TExaS_Init
+   Definitions
+      At line 53 in file main.s
+   Uses
+      At line 59 in file main.s
+Comment: TExaS_Init used once
+1 symbol
+387 symbols in table

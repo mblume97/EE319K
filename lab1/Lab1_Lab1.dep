@@ -1,0 +1,9 @@
+Dependencies for Project 'Lab1', Target 'Lab1': (DO NOT MODIFY !)
+F (.\Startup.s)(0x58878EC3)(--cpu Cortex-M3 --pd "__EVAL SETA 1" -g --apcs=interwork -I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"--list .\startup.lst --xref -o .\startup.o --depend .\startup.d)
+F (.\main.c)(0x5897698D)(-c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --signed_chars --C99-I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"-o .\main.o --omf_browse .\main.crf --depend .\main.d)
+I (C:\Users\Michael\Desktop\New folder\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+I (UART.h)(0x58878EC3)
+F (.\Lab1.c)(0x589A04BF)(-c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --signed_chars --C99-I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"-o .\lab1.o --omf_browse .\lab1.crf --depend .\lab1.d)
+I (C:\Users\Michael\Desktop\New folder\ARM\ARMCC\include\stdint.h)(0x51C88A34)
+F (.\UART.c)(0x58878EC3)(-c --cpu Cortex-M3 -D__EVAL -g -O0 --apcs=interwork --signed_chars --C99-I "C:\Users\Michael\Desktop\New folder\ARM\RV31\INC"-I "C:\Users\Michael\Desktop\New folder\ARM\CMSIS\Include"-I "C:\Users\Michael\Desktop\New folder\ARM\Inc\Luminary"-o .\uart.o --omf_browse .\uart.crf --depend .\uart.d)
+I (UART.h)(0x58878EC3)
